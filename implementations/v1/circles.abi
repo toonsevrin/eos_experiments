@@ -1,15 +1,13 @@
 {
-  "types": [{
-      "new_type_name": "account_name",
-      "type": "name"
-    }
-  ],
+  "types": [],
   "structs": [{
       "name": "exchange",
       "base": "",
       "fields": {
-        "from": "account_name",
-        "to": "account_name",
+        "from": "name",
+        "from_currency": "name",
+        "to": "name",
+        "to_currency": "name",
         "amount": "uint64"
       }
     },{
@@ -17,21 +15,40 @@
       "base": "",
       "fields": {
         "account": "name",
+        "currency": "name",
         "balance": "uint64"
       }
+    },{ 
+        "name": "trust_relation",
+        "base": "",
+        "fields": {
+          "trustor": "name",
+          "trustee": "name",
+        }
     }
   ],
   "actions": [{
       "action_name": "exchange",
       "type": "exchange"
+    },{
+      "action_name": "trust",
+      "type": "trust_relation"
+    },{
+      "action_name": "untrust",
+      "type": "trust_relation"
     }
   ],
   "tables": [{
       "table_name": "account",
       "type": "account",
       "index_type": "i64",
-      "key_names" : ["account"],
-      "key_types" : ["name"]
+      "key_names" : ["account", "currency"],
+      "key_types" : ["name", "name"]
+    },{
+     "table_name": "trust",
+     "type": "trust_relation",
+     "key_names": ["trustor", "trustee"],
+     "key_types": ["name", "name"]
     }
   ]
 }
