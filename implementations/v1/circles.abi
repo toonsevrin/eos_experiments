@@ -14,8 +14,21 @@
       "name": "account",
       "base": "",
       "fields": {
+        "account": "name"
+      }
+    },{
+      "name": "last_claim",
+      "base": "",
+      "fields": {
         "account": "name",
-        "currency": "name",
+        "last_claim": "time"
+      }
+    },{
+      "name": "token_ownership",
+      "base": "",
+      "fields": {
+        "owner": "name",
+        "token": "name",
         "balance": "uint64"
       }
     },{ 
@@ -36,17 +49,27 @@
     },{
       "action_name": "untrust",
       "type": "trust_relation"
+    },{
+      "action_name": "claim",
+      "type": "account"
     }
   ],
   "tables": [{
-      "table_name": "account",
-      "type": "account",
+      "table_name": "lastclaims",
+      "type": "last_claim",
       "index_type": "i64",
-      "key_names" : ["account", "currency"],
+      "key_names" : ["account"],
+      "key_types" : ["name"]
+    },{
+      "table_name": "tokenowners",
+      "type": "token_ownership",
+      "index_type": "i128i128",
+      "key_names" : ["owner", "token"],
       "key_types" : ["name", "name"]
     },{
-     "table_name": "trust",
+     "table_name": "trusts",
      "type": "trust_relation",
+      "index_type": "i128i128",
      "key_names": ["trustor", "trustee"],
      "key_types": ["name", "name"]
     }

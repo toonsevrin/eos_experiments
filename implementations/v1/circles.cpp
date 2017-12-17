@@ -1,4 +1,13 @@
+/**
+ *  @file
+ *  @copyright defined in eos/LICENSE.txt
+ */
 #include <circles.hpp>
+
+/**
+ *  The init() and apply() methods must have C calling convention so that the blockchain can lookup and
+ *  call these methods.
+ */
 
 namespace circles {
     void createAccount(uint64_t account)
@@ -7,7 +16,29 @@ namespace circles {
     }
     void claimTokens(uint64_t account)
     {
-          require_auth(account);
+        require_auth(account);
+        last_claim query;
+        query.account = account;
+        last_claims::get(query);
+        if(query.last_claim == 0){      
+            eosio::print("Created account at: ", now());
+        }else{
+            uint64_t diff = now() - query.last_claim;
+            eosio::print("Granting tokens: ", diff);
+            circles::addTokens(account, account, diff);
+        }
+
+        last_claim lc { account, now() };
+        last_claims::store(lc);
+          
+    }
+    void addTokens(uint64_t account, uint64_t token, uint64_t amount){
+        token_ownership query;
+        query.owner = account;
+        query.token = token;
+        token_owners::get(query);
+        query.balance = query.balance + amount;
+        token_owners::store(query);
     }
     void trust(trust_relation relation)
     {       
@@ -44,6 +75,11 @@ extern "C" {
 	 else if(action == N(claim))
 	 {
 	     eosio::print("TODO: CLaim currency \n");
+             account message;
+	     static_assert(sizeof(message) == 1*sizeof(uint64_t), "unexpected padding");
+	     auto read = read_message(&message, sizeof(message));
+	     assert(read == sizeof(message), "message too short");
+             circles::claimTokens(message.account);
          }
 	 else if(action == N(trust))
 	 {
