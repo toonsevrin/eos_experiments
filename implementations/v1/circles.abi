@@ -31,12 +31,25 @@
         "token": "name",
         "balance": "uint64"
       }
+    },{
+      "name": "token",
+      "base": "",
+      "fields": {
+        "token": "name",
+        "balance": "uint64"
+      }
     },{ 
         "name": "trust_relation",
         "base": "",
         "fields": {
           "trustor": "name",
           "trustee": "name",
+        }
+    },{ 
+        "name": "trust",
+        "base": "",
+        "fields": {
+          "trustee": "name"
         }
     }
   ],
@@ -61,17 +74,17 @@
       "key_names" : ["account"],
       "key_types" : ["name"]
     },{
-      "table_name": "tokenowners",
-      "type": "token_ownership",
-      "index_type": "i128i128",
-      "key_names" : ["owner", "token"],
-      "key_types" : ["name", "name"]
-    },{
      "table_name": "trusts",
-     "type": "trust_relation",
-      "index_type": "i128i128",
-     "key_names": ["trustor", "trustee"],
-     "key_types": ["name", "name"]
+     "type": "trust",
+     "index_type": "i64",
+     "key_names": ["trustee"],
+     "key_types": ["name"]
+    },{
+      "table_name": "tokens",
+      "type": "token",
+      "index_type": "i64",
+      "key_names" : ["token"],
+      "key_types" : ["name"]
     }
   ]
 }

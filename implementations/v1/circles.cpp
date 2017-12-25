@@ -14,47 +14,111 @@ namespace circles {
     {
         
     }
+    void addTokens(uint64_t account, uint64_t token_name, uint64_t amount) {
+        token query;
+        query.token = token_name;
+        bool getToken = tokenTable::get(query, account);
+        query.balance = query.balance + amount;
+        if(getToken == true) {
+            tokenTable::update(query, account);
+        } else {
+            tokenTable::store(query, account);
+        }
+    }
+    uint64_t getTokens(uint64_t account, uint64_t token_name){
+	token query;
+        query.token = token_name;
+        tokenTable::get(query, account);
+        return query.balance;
+    }
+
+    bool trust_exists(trust_relation relation){
+        trust query;
+        query.trustee = relation.trustee;
+        return trustTable::get(query, relation.trustor);
+    }
+
     void claimTokens(uint64_t account)
     {
         require_auth(account);
         last_claim query;
         query.account = account;
-        last_claims::get(query);
-        if(query.last_claim == 0){      
+        bool exists = last_claims::get(query);
+        if(!exists){      
             eosio::print("Created account at: ", now());
         }else{
             uint64_t diff = now() - query.last_claim;
             eosio::print("Granting tokens: ", diff);
-            circles::addTokens(account, account, diff);
+            addTokens(account, account, diff);
         }
 
         last_claim lc { account, now() };
         last_claims::store(lc);
           
     }
-    void addTokens(uint64_t account, uint64_t token, uint64_t amount){
-        token_ownership query;
-        query.owner = account;
-        query.token = token;
-        token_owners::get(query);
-        query.balance = query.balance + amount;
-        token_owners::store(query);
-    }
-    void trust(trust_relation relation)
+
+    void trust_account(trust_relation relation)
     {       
           require_auth(relation.trustor);
-          eosio::print("TODO: Let ", eosio::name(relation.trustor),  " trust account ", eosio::name(relation.trustee), " \n");
-    }
-    void untrust(trust_relation relation)
-    {       
-          require_auth(relation.trustor);
-    }
-    void apply_exchange(exchange exchange_msg)
-    {
-        require_auth(exchange_msg.from);
-        eosio::print( "Transfer ", exchange_msg.amount, " from ", eosio::name(exchange_msg.from),"(", eosio::name(exchange_msg.from_currency), ") to ", eosio::name(exchange_msg.to), "(", eosio::name(exchange_msg.to_currency),  ")\n" );
+          if(relation.trustor == relation.trustee){
+               eosio::print("An account was prohibited in trusting itself");
+               return;
+          }
+          trust query;
+          query.trustee = relation.trustee;
+          bool exists = trustTable::get(query, relation.trustor);
+          if(!exists){
+               trustTable::store(query, relation.trustor);
+          eosio::print(eosio::name(relation.trustor),  " trusted account ", eosio::name(relation.trustee), " \n");
+          } else {
+              eosio::print(eosio::name(relation.trustor), " tried to trust ", eosio::name(relation.trustee), " but already did.");
+          }
     }
 
+    void untrust_account	(trust_relation relation)
+    {       
+          require_auth(relation.trustor);
+          if(relation.trustor == relation.trustee){
+               eosio::print("An account was prohibited in untrusting itself");
+               return;
+          }
+          trust query;
+          query.trustee = relation.trustee;
+          bool exists = trustTable::get(query, relation.trustor);
+          if(exists){
+               trustTable::remove(query, relation.trustor);
+          eosio::print(eosio::name(relation.trustor),  " untrusted account ", eosio::name(relation.trustee), " \n");
+          } else {
+              eosio::print(eosio::name(relation.trustor), " tried to untrust ", eosio::name(relation.trustee), " but already did.");
+          }
+    }
+    void apply_exchange(exchange msg)
+    {
+        require_auth(msg.from);
+        if(msg.from_currency != msg.to && !trust_exists({msg.to, msg.from_currency})){
+            eosio::print("Exchange failed because ", eosio::name(msg.to), " does not trust ", eosio::name(msg.from_currency));
+            return;
+        }else if(!trust_exists({msg.to, msg.from})){
+            eosio::print("Exchange failed because ", eosio::name(msg.to), " does not trust ", eosio::name(msg.from));
+            return;
+        }
+        if(getTokens(msg.from, msg.from_currency) < msg.amount){
+            eosio::print("Exchange failed because ", eosio::name(msg.from), "'s ", eosio::name(msg.from_currency), " balance is smaller then ", msg.amount);
+            return;
+        }
+        if(getTokens(msg.to, msg.to_currency) < msg.amount){
+            eosio::print("Exchange failed because ", eosio::name(msg.to), "'s ", eosio::name(msg.to_currency), " balance is smaller then ", msg.amount);
+            return;
+        }
+	addTokens(msg.from, msg.from_currency, -msg.amount);
+	addTokens(msg.from, msg.to_currency, msg.amount);
+	addTokens(msg.to, msg.to_currency, -msg.amount);
+	addTokens(msg.to, msg.from_currency, msg.amount);
+
+        eosio::print( "Transfered ", msg.amount, " from ", eosio::name(msg.from),"(", eosio::name(msg.from_currency), ") to ", eosio::name(msg.to), "(", eosio::name(msg.to_currency),  ")\n" );
+        
+        
+    }
 }
 
 using namespace circles;
@@ -87,11 +151,15 @@ extern "C" {
 	     static_assert(sizeof(message) == 2*sizeof(uint64_t), "unexpected padding");
 	     auto read = read_message(&message, sizeof(message));
 	     assert(read == sizeof(message), "message too short");
-             circles::trust(message);
+             circles::trust_account(message);
          }
 	 else if(action == N(untrust))
 	 {
-             eosio::print("TODO: UNtrust account \n");
+             trust_relation message;
+	     static_assert(sizeof(message) == 2*sizeof(uint64_t), "unexpected padding");
+	     auto read = read_message(&message, sizeof(message));
+	     assert(read == sizeof(message), "message too short");
+             circles::untrust_account(message);
          }
 	 else if(action == N(exchange))
 	 {

@@ -16,14 +16,16 @@ namespace circles {
         time last_claim;
     };
 
-    struct token_ownership {
-        uint64_t owner;
+    struct token {
         uint64_t token;
         uint64_t balance;
     };
-    
+
     struct trust_relation {
         uint64_t trustor;
+        uint64_t trustee;
+    };
+    struct trust {
         uint64_t trustee;
     };
 
@@ -34,8 +36,8 @@ namespace circles {
         uint64_t to_currency;
         uint64_t amount;
     };
-    
+    typedef eosio::table<N(somescope), N(testacc), N(trusts), trust, uint64_t> trustTable;
+    typedef eosio::table<N(somescope), N(testacc), N(tokens), token, uint64_t> tokenTable;
     using last_claims = eosio::table<N(testacc), N(testacc), N(lastclaims), last_claim, uint64_t>;
-    using token_owners = eosio::table<N(testacc), N(testacc), N(tokenowners), token_ownership, uint64_t, uint64_t>;
-    using trust_relations = eosio::table<N(testacc), N(testacc), N(trusts), trust_relation, uint64_t, uint64_t>;
+    //using trust_relations = eosio::table<N(testacc), N(testacc), N(trusts), trust, uint64_t, uint64_t>;
 }
